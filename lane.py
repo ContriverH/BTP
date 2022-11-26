@@ -155,15 +155,14 @@ def preprocess(video_path):
     cv2.destroyAllWindows()
 
     # getting the average of all coordinates
-    average_coordinates = np.average(
-        coordinates, axis=0) + [[30, -30], [-30, -30]]  # padding, so that the mask does not go out of range
+    average_coordinates = np.int_(np.average(
+        coordinates, axis=0)) + [[30, -60], [-40, -30]]  # padding, so that the mask does not go out of range
 
     return average_coordinates
 
 
-print(preprocess('Highway.mp4'))
+# print(preprocess('Highway.mp4'))
 # print(preprocess('test2.mp4'))
-# preprocess(image2)
 
 
 # the frame size is 1280 * 720
