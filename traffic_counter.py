@@ -1,13 +1,15 @@
 import numpy as np
 import cv2
 import pandas as pd
+from lane import preprocess
+
+cordinates = preprocess('Highway.mp4')
 
 cap = cv2.VideoCapture('Highway.mp4')
 frames_count, fps, width, height = cap.get(cv2.CAP_PROP_FRAME_COUNT), cap.get(cv2.CAP_PROP_FPS), cap.get(
     cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 width = int(width)
 height = int(height)
-print(frames_count, fps, width, height)
 
 # creates a pandas data frame with the number of rows the same length as frame count
 df = pd.DataFrame(index=range(int(frames_count)))
@@ -51,7 +53,7 @@ while True:
 
         # creates contours
         contours, hierarchy = cv2.findContours(bins, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
+        
         # use convex hull to create polygon around contours
         hull = [cv2.convexHull(c) for c in contours]
 
@@ -59,15 +61,24 @@ while True:
         cv2.drawContours(image, hull, -1, (0, 255, 0), 3)
 
         # line created to stop counting contours, needed as cars in distance become one big contour
-        lineypos = 225
-        cv2.line(image, (0, lineypos), (width, lineypos), (255, 0, 0), 5)
-
-        # line y position created to count contours
-        lineypos2 = 250
-        cv2.line(image, (0, lineypos2), (width, lineypos2), (0, 255, 0), 5)
-
+        lineypos2 = 250 
+        lineypos= 200 
+  
+        cv2.line(image, (cordinates[0][0], cordinates[0][1] - 350  ), (cordinates[1][0], cordinates[0][1] - 350 ), (255, 0, 0), 5)
+        cv2.line(image, (cordinates[0][0], cordinates[0][1] - 300  ), (cordinates[1][0], cordinates[0][1] - 300 ), (255, 0, 0), 5)
         # min area for contours in case a bunch of small noise contours are created
+
         minarea = 300
+        # discussion
+        # first detect direction of motion, then make the lane detection part. 
+        # first check whole picture for direction of motion
+        # number of boxes required per lane. 
+        # indian road congress
+        # check for whole screen and for small window. show comparision in review. 
+        # skipping frame 
+        # more number of boxes required per lane. 
+        # distance from camera to physical distance of road. 
+        # number of pixels occupying the lane to divide it into
 
         # max area for contours, can be quite large for buses
         maxarea = 50000
@@ -90,22 +101,19 @@ while True:
                     cx = int(M['m10'] / M['m00'])
                     cy = int(M['m01'] / M['m00'])
 
-                    if cy > lineypos:  # filters out contours that are above line (y starts at top)
-
+                    if cy > lineypos:  
+                        # filters out contours that are above line (y starts at top)
                         # gets bounding points of contour to create rectangle
                         # x,y is top left corner and w,h is width and height
                         x, y, w, h = cv2.boundingRect(cnt)
-
+                        
                         # creates a rectangle around contour
                         cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
                         # Prints centroid text in order to double check later on
                         cv2.putText(image, str(cx) + "," + str(cy), (cx + 10, cy + 10), cv2.FONT_HERSHEY_SIMPLEX,
                                     .3, (0, 0, 255), 1)
-
                         cv2.drawMarker(image, (cx, cy), (0, 0, 255), cv2.MARKER_STAR, markerSize=5, thickness=1,
                                        line_type=cv2.LINE_AA)
-
                         # adds centroids that passed previous criteria to centroid list
                         cxx[i] = cx
                         cyy[i] = cy
@@ -236,11 +244,11 @@ while True:
             if curcent:  # if there is a current centroid
 
                 # On-screen text for current centroid
-                # cv2.putText(image, "Centroid" + str(curcent[0]) + "," + str(curcent[1]),
-                #             (int(curcent[0]), int(curcent[1])), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 255, 255), 2)
+                cv2.putText(image, "Centroid" + str(curcent[0]) + "," + str(curcent[1]),
+                            (int(curcent[0]), int(curcent[1])), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 255, 255), 2)
 
-                # cv2.putText(image, "ID:" + str(carids[currentcarsindex[i]]), (int(curcent[0]), int(curcent[1] - 15)),
-                #             cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 255, 255), 2)
+                cv2.putText(image, "ID:" + str(carids[currentcarsindex[i]]), (int(curcent[0]), int(curcent[1] - 15)),
+                            cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 255, 255), 2)
 
                 cv2.drawMarker(image, (int(curcent[0]), int(curcent[1])), (0, 0, 255), cv2.MARKER_STAR, markerSize=5,
                                thickness=1, line_type=cv2.LINE_AA)
@@ -269,13 +277,14 @@ while True:
                         currentcarsindex[i]] not in caridscrossed:
 
                         carscrosseddown = carscrosseddown + 1
-                        cv2.line(image, (0, lineypos2), (width, lineypos2), (0, 0, 125), 5)
+
+                        # cv2.line(image, (0, lineypos2), (width, lineypos2), (0, 0, 125), 5)
                         caridscrossed.append(currentcarsindex[i])
 
         # Top left hand corner on-screen text
         cv2.rectangle(image, (0, 0), (250, 100), (255, 0, 0), -1)  # background rectangle for on-screen text
 
-        # cv2.putText(image, "Cars in Area: " + str(currentcars), (0, 15), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 170, 0), 1)
+        cv2.putText(image, "Cars in Area: " + str(currentcars), (0, 15), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 170, 0), 1)
 
         cv2.putText(image, "Cars Crossed Up: " + str(carscrossedup), (0, 30), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 170, 0),
                     1)
@@ -289,27 +298,27 @@ while True:
         cv2.putText(image, "Frame: " + str(framenumber) + ' of ' + str(frames_count), (0, 75), cv2.FONT_HERSHEY_SIMPLEX,
                     .5, (0, 170, 0), 1)
 
-        # cv2.putText(image, 'Time: ' + str(round(framenumber / fps, 2)) + ' sec of ' + str(round(frames_count / fps, 2))
-        #             + ' sec', (0, 90), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 170, 0), 1)
+        cv2.putText(image, 'Time: ' + str(round(framenumber / fps, 2)) + ' sec of ' + str(round(frames_count / fps, 2))
+                    + ' sec', (0, 90), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 170, 0), 1)
 
         # displays images and transformations
         cv2.imshow("countours", image)
         cv2.moveWindow("countours", 0, 0)
 
-        # cv2.imshow("fgmask", fgmask)
-        # cv2.moveWindow("fgmask", int(width * ratio), 0)
+        cv2.imshow("fgmask", fgmask)
+        cv2.moveWindow("fgmask", int(width * ratio), 0)
 
-        # cv2.imshow("closing", closing)
-        # cv2.moveWindow("closing", width, 0)
+        cv2.imshow("closing", closing)
+        cv2.moveWindow("closing", width, 0)
 
-        # cv2.imshow("opening", opening)
-        # cv2.moveWindow("opening", 0, int(height * ratio))
+        cv2.imshow("opening", opening)
+        cv2.moveWindow("opening", 0, int(height * ratio))
 
-        # cv2.imshow("dilation", dilation)
-        # cv2.moveWindow("dilation", int(width * ratio), int(height * ratio))
+        cv2.imshow("dilation", dilation)
+        cv2.moveWindow("dilation", int(width * ratio), int(height * ratio))
 
-        # cv2.imshow("binary", bins)
-        # cv2.moveWindow("binary", width, int(height * ratio))
+        cv2.imshow("binary", bins)
+        cv2.moveWindow("binary", width, int(height * ratio))
 
         video.write(image)  # save the current image to video file from earlier
 
@@ -328,4 +337,4 @@ cap.release()
 cv2.destroyAllWindows()
 
 # saves dataframe to csv file for later analysis
-df.to_csv('traffic.csv', sep=',')
+# df.to_csv('traffic.csv', sep=',')
