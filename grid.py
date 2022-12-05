@@ -76,10 +76,6 @@ def grid_detect():
                         print("Object Detected = " + str(round(carCount)))
                         prevCount = carCount
 
-                # cv2.imshow("show1" + str(i), _h)
-                # cv2.imshow("sho2" + str(i), _s)
-                # cv2.imshow("show3" + str(i), _v)
-
             # Cropping image
             frame_cropped = hsv[starting_y:ending_y, starting_x:ending_x]
 
